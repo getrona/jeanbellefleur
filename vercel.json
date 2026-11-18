@@ -1,0 +1,69 @@
+{
+  "buildCommand": "npm run vercel:build",
+  "framework": "nextjs",
+  "installCommand": "npm ci",
+  
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "DIRECT_URL": "@direct-url"
+  },
+  
+  "crons": [
+    {
+      "path": "/api/cron/newsletter",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/health-check",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/backup-audit-log",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/reconciliation",
+      "schedule": "0 3 * * 1"
+    }
+  ],
+  
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  
+  "redirects": [
+    {
+      "source": "/admin/:path*",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-forwarded-proto",
+          "value": "http"
+        }
+      ],
+      "destination": "https://:host/admin/:path*",
+      "permanent": true
+    }
+  ],
+  
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  }
+}
