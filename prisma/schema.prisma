@@ -736,11 +736,6 @@ model SubscriberExport {
 }
 
 // Add relation to Chapter for events and newsletter subscribers
-model Chapter {
-  newsletterSubscribers NewsletterSubscriber[]
-  events                ChapterEvent[]
-  publicEvents          Event[]
-}
 
 // CONTENT (Sourced, versioned content blocks)
 model Content {
@@ -819,6 +814,7 @@ enum ContentCategory {
   PUBLIC_SERVICE
   PARTY_AFFILIATION
   CEP_REGISTRATION
+  ELECTIONS
   NEWS
   TESTIMONIAL
   FAQ_ANSWER
@@ -1363,14 +1359,6 @@ model MessageLog {
   @@index([sentAt])
 }
 
-enum MessageStatus {
-  SENT
-  DELIVERED
-  OPENED
-  CLICKED
-  FAILED
-  BOUNCED
-}
 
 // CHANNEL CONFIG (Per-channel settings)
 model ChannelConfig {
@@ -3197,12 +3185,6 @@ enum ConsentPurpose {
   ESSENTIAL // Transaction processing (auto-granted)
 }
 
-enum ConsentStatus {
-  PENDING // Awaiting confirmation
-  GRANTED // Active consent
-  DENIED // Explicitly denied
-  WITHDRAWN // Previously granted, now withdrawn
-}
 
 enum ConsentBasis {
   EXPLICIT_CONSENT // User explicitly opted in (GDPR Article 6(1)(a))
@@ -3213,42 +3195,6 @@ enum ConsentBasis {
 }
 
 // DATA SUBJECT REQUESTS (GDPR/CCPA/PIPEDA Rights)
-model DataSubjectRequest {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Donor linkage
-  donorId String
-  donor   Donor  @relation(fields: [donorId], references: [id], onDelete: Cascade)
-
-  // Request type
-  type DataSubjectRequestType
-
-  // Status
-  status RequestStatus @default(PENDING)
-
-  // Processing
-  processedBy     String?
-  processedAt     DateTime?
-  completedAt     DateTime?
-  denialReason    String? @db.Text
-
-  // Verification (magic link)
-  verificationToken     String   @unique
-  verificationExpiresAt DateTime
-  verifiedAt            DateTime?
-
-  // Audit trail
-  requestedAt DateTime @default(now())
-  ipAddress   String?
-  userAgent   String? @db.Text
-
-  @@index([donorId])
-  @@index([status])
-  @@index([type])
-  @@index([verificationToken])
-}
 
 enum DataSubjectRequestType {
   ACCESS // Right to access (data export)
@@ -3398,6 +3344,10 @@ model Chapter {
   
   // Memberships
   memberships ChapterMembership[]
+  
+  // Relations from other models
+  newsletterSubscribers NewsletterSubscriber[]
+  publicEvents          Event[]
 
   // Moderation
   suspended       Boolean @default(false)
@@ -3493,12 +3443,6 @@ model ChapterEvent {
   @@index([status])
 }
 
-enum EventStatus {
-  DRAFT
-  PUBLISHED
-  CANCELLED
-  PAST
-}
 
 // SUPPORTER PAGES (/s/[slug])
 model SupporterPage {
@@ -3859,7 +3803,9 @@ model DataSubjectRequest {
   // Request Type
   requestType DataSubjectRequestType
   
-  // Subject
+  // Subject (linked to Donor)
+  donorId      String?
+  donor        Donor? @relation(fields: [donorId], references: [id])
   subjectEmail String
   subjectName  String?
   
@@ -3898,18 +3844,13 @@ model DataSubjectRequest {
   contactEmail    String // Email for updates
   notes           String? @db.Text
   
+  @@index([donorId])
   @@index([subjectEmail])
   @@index([status])
   @@index([requestType])
   @@index([createdAt])
 }
 
-enum DataSubjectRequestType {
-  EXPORT   // Request copy of personal data
-  DELETE   // Request deletion (right to be forgotten)
-  RECTIFY  // Request correction of data
-  RESTRICT // Request restriction of processing
-}
 
 enum DataSubjectRequestStatus {
   PENDING        // New request
@@ -4010,12 +3951,6 @@ model AlertSetting {
   @@index([enabled])
 }
 
-enum AlertSeverity {
-  INFO
-  WARNING
-  ERROR
-  CRITICAL
-}
 
 // ALERT EVENTS (Fired alerts)
 model AlertEvent {
@@ -4157,302 +4092,3 @@ model WebhookFailure {
   @@index([createdAt])
 }
 
-
-// COMMUNICATIONS: Contact and Channel Management
-model Contact {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Encrypted fields (use field-level encryption)
-  nameEncrypted      String // Full name, encrypted
-  emailEncrypted     String? // Email, encrypted
-  phoneEncrypted     String? // E.164 format phone, encrypted
-  
-  // Blind indexes for search (hashed, not reversible)
-  emailBlindIndex    String? @unique // For finding by email without decryption
-  phoneBlindIndex    String? @unique // For finding by phone without decryption
-  
-  // Public fields
-  language           String @default("ht") // Preferred language (ht, fr, en)
-  country            String? // ISO 3166-1 alpha-2 country code
-  timezone           String? // IANA timezone
-  
-  // Relationships
-  consents           ChannelConsent[]
-  suppressions       Suppression[]
-  messageLog         MessageLog[]
-  
-  // Link to donor/supporter record
-  contributorId      String? @unique // Links to existing donor model if they contributed
-  
-  // Source tracking
-  source             String? // Where did we get this contact (waitlist, donation, volunteer, etc.)
-  sourceUrl          String? // Specific URL they signed up from
-  
-  // Status
-  status             ContactStatus @default(ACTIVE)
-  
-  @@index([emailBlindIndex])
-  @@index([phoneBlindIndex])
-  @@index([status])
-  @@index([country])
-}
-
-enum ContactStatus {
-  ACTIVE
-  INACTIVE
-  DELETED
-}
-
-model ChannelConsent {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Who gave consent
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  contactId String
-
-  // What channel and topic
-  channel   CommunicationChannel
-  topic     CommunicationTopic
-  
-  // Consent details
-  language           String // Language consent was given in (ht, fr, en)
-  consentTextVersion String // Exact version of consent text shown
-  consentTimestamp   DateTime @default(now()) // When they consented
-  source             String // Which form/page (e.g., "waitlist", "post-donation", "newsletter")
-  ipCountry          String? // Country from IP at consent time (for compliance)
-  userAgent          String? @db.Text // Browser user agent at consent time
-  
-  // Double opt-in tracking
-  doubleOptInToken        String? @unique // Token sent in confirmation email/SMS
-  doubleOptInSentAt       DateTime? // When confirmation was sent
-  doubleOptInConfirmedAt  DateTime? // When user clicked/entered code
-  doubleOptInExpiresAt    DateTime? // When token expires (24-48 hours)
-  
-  // Status
-  status    ConsentStatus @default(PENDING)
-  
-  // Opt-out tracking
-  unsubscribedAt  DateTime?
-  unsubscribeReason String? // Optional user-provided reason
-  
-  // Audit
-  updatedBy String? // User ID who made last change (for admin actions)
-  
-  @@unique([contactId, channel, topic]) // One consent record per contact-channel-topic
-  @@index([status])
-  @@index([channel])
-  @@index([topic])
-  @@index([doubleOptInToken])
-}
-
-enum CommunicationChannel {
-  EMAIL
-  SMS
-  TELEGRAM
-  WEB_PUSH
-}
-
-enum CommunicationTopic {
-  NEWS           // Campaign news, updates
-  EVENTS         // Event invitations
-  FUNDRAISING    // Donation requests
-  VOLUNTEER      // Volunteer opportunities
-}
-
-enum ConsentStatus {
-  PENDING              // Awaiting double opt-in confirmation
-  ACTIVE               // Confirmed and active
-  UNSUBSCRIBED         // User opted out
-  BOUNCED              // Hard bounce (email/SMS failed)
-  COMPLAINED           // Spam complaint
-  SUPPRESSED           // Administratively suppressed
-}
-
-model Suppression {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Who is suppressed
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  contactId String
-
-  // What's suppressed
-  suppressionType SuppressionType
-  channel         CommunicationChannel? // Null = global suppression
-  
-  // Why suppressed
-  reason          String // SPAM_COMPLAINT, HARD_BOUNCE, USER_REQUEST, LEGAL_HOLD, FRAUD, etc.
-  reasonDetail    String? @db.Text // Additional context
-  
-  // When and by whom
-  suppressedBy    String? // User ID who added suppression
-  suppressedAt    DateTime @default(now())
-  
-  // Expiration (usually permanent, but can be time-limited)
-  expiresAt       DateTime?
-  
-  @@index([contactId])
-  @@index([channel])
-  @@index([suppressionType])
-}
-
-enum SuppressionType {
-  GLOBAL           // Never contact again on any channel
-  CHANNEL_SPECIFIC // Never contact on specific channel
-}
-
-model MessageLog {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  // Who received it
-  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  contactId String?
-  
-  // Encrypted recipient identifiers (for audit when contact deleted)
-  recipientEncrypted String // Email or phone, encrypted
-  recipientBlindIndex String // For searching logs
-  
-  // What was sent
-  channel       CommunicationChannel
-  topic         CommunicationTopic
-  subject       String? // Email subject or SMS preview
-  messageId     String? @unique // Provider's message ID
-  
-  // Message body (ONLY for non-sensitive topics)
-  // NEVER store body for FUNDRAISING topic
-  bodyStored    Boolean @default(false)
-  body          String? @db.Text // Stored only if topic != FUNDRAISING
-  
-  // Status tracking
-  status        MessageStatus @default(SENT)
-  sentAt        DateTime?
-  deliveredAt   DateTime?
-  bouncedAt     DateTime?
-  openedAt      DateTime? // Email opens (first open)
-  clickedAt     DateTime? // Link clicks (first click)
-  
-  // Provider details
-  provider      String? // resend, twilio, etc.
-  providerError String? @db.Text
-  
-  // Campaign/batch tracking
-  campaignId    String? // If part of a campaign
-  batchId       String? // If part of a batch send
-  
-  @@index([contactId])
-  @@index([recipientBlindIndex])
-  @@index([channel])
-  @@index([topic])
-  @@index([messageId])
-  @@index([status])
-  @@index([sentAt])
-}
-
-enum MessageStatus {
-  QUEUED      // Queued for sending
-  SENT        // Sent to provider
-  DELIVERED   // Provider confirmed delivery
-  BOUNCED     // Hard or soft bounce
-  FAILED      // Send failed
-  OPENED      // Email opened (if tracked)
-  CLICKED     // Link clicked (if tracked)
-}
-
-// Channel Configuration (admin-managed)
-model ChannelConfig {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  channel   CommunicationChannel @unique
-  enabled   Boolean @default(false)
-  
-  // Provider configuration (encrypted JSON)
-  providerName      String? // "resend", "twilio", "sendgrid", etc.
-  providerConfig    Json? // Encrypted provider-specific config
-  
-  // Sending configuration
-  fromName          String? // Sender name
-  fromEmail         String? // For EMAIL channel
-  fromPhone         String? // For SMS channel (E.164)
-  replyToEmail      String? // For EMAIL channel
-  
-  // Localized sender identification
-  senderIdHt        String? // Haitian Creole sender ID
-  senderIdFr        String? // French sender ID
-  senderIdEn        String? // English sender ID
-  
-  // Compliance
-  quietHoursStart   Int? // Hour of day (0-23), no sending before this
-  quietHoursEnd     Int? // Hour of day (0-23), no sending after this
-  allowedCountries  String[] // ISO 3166-1 alpha-2 codes
-  
-  // Health
-  lastHealthCheck   DateTime?
-  healthStatus      ChannelHealthStatus @default(UNKNOWN)
-  healthError       String? @db.Text
-  
-  // Launch checklist (must be complete before enabling)
-  checklistComplete Boolean @default(false)
-  checklistItems    Json? // Array of checklist item statuses
-  
-  @@index([channel])
-  @@index([enabled])
-}
-
-enum ChannelHealthStatus {
-  HEALTHY
-  DEGRADED
-  DOWN
-  UNKNOWN
-}
-
-// Consent Text Versions (for audit trail)
-model ConsentTextVersion {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  version   String @unique // e.g., "v1.0", "v1.1"
-  channel   CommunicationChannel
-  topic     CommunicationTopic
-  language  String // ht, fr, en
-  
-  text      String @db.Text // Exact consent text shown
-  
-  // When this version was active
-  activeFrom  DateTime @default(now())
-  activeUntil DateTime? // Null = current version
-  
-  @@index([channel, topic, language])
-  @@index([version])
-}
-
-// WhatsApp Channel Configuration (manual presence only)
-model WhatsAppConfig {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Channel URL (user follows manually)
-  channelUrl String? // https://whatsapp.com/channel/...
-  channelQrCodeUrl String? // URL to QR code image
-  
-  // Display settings
-  enabled   Boolean @default(false) // Show "Follow on WhatsApp" module
-  
-  // Compliance
-  guidelinesReviewed Boolean @default(false) // Team reviewed WhatsApp Channel guidelines
-  guidelinesReviewedBy String?
-  guidelinesReviewedAt DateTime?
-  
-  // Note for admins
-  note String? @db.Text // "Posts are made manually by team members. Link to guidelines: ..."
-  
-  @@index([enabled])
-}

@@ -109,7 +109,7 @@ async function seedJourneyEntries() {
     {
       // E04 - 2026 Candidacy (NEEDS_REVIEW - awaiting evidence)
       slug: 'e04-senate-candidacy-2026',
-      category: 'CANDIDACY' as const,
+      category: 'ELECTIONS' as const,
       status: 'NEEDS_REVIEW' as const,
       confidence: 'REPORTED_SINGLE_SOURCE' as const,
       date: new Date('2026-01-01'),

@@ -30,6 +30,13 @@ const envSchema = z.object({
   // Compliance
   ALLOWED_COUNTRIES: z.string().default('US,CA,FR'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+
+  // Sentry (optional)
+  SENTRY_DSN: z.string().optional(),
+  
+  // Vercel (optional, populated automatically on Vercel)
+  VERCEL_ENV: z.string().optional(),
+  VERCEL_GIT_COMMIT_SHA: z.string().optional(),
 })
 
 function validateEnv() {

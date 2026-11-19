@@ -44,7 +44,7 @@ export async function register() {
       ],
       
       // Scrub sensitive data
-      beforeSend(event, hint) {
+      beforeSend(event) {
         // Remove sensitive headers
         if (event.request?.headers) {
           delete event.request.headers['authorization']
@@ -76,11 +76,11 @@ export async function register() {
       
       // Integrations
       integrations: [
-        // Prisma integration
-        new Sentry.Integrations.Prisma({ client: undefined }),
+        // Prisma integration (basic setup)
+        Sentry.prismaIntegration(),
         
         // HTTP integration
-        new Sentry.Integrations.Http({ tracing: true }),
+        Sentry.httpIntegration(),
       ],
     })
     
