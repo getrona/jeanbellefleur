@@ -201,14 +201,12 @@
     "backToHome": "Back to home",
     "back": "Back",
     "securePayment": "Secure payment",
-    
     "steps": {
       "progressLabel": "Contribution progress",
       "amount": "Amount",
       "details": "Your details",
       "payment": "Payment"
     },
-
     "infoOnly": {
       "title": "Contributions Not Yet Available",
       "description": "Thank you for your interest in supporting {candidateName}. This platform is not yet accepting contributions.",
@@ -219,7 +217,6 @@
       "linkDepartment": "Learn about Nord-Ouest",
       "linkIssues": "Explore key issues"
     },
-
     "waitlist": {
       "title": "Get Launch Updates",
       "description": "Be notified when contributions for {candidateName} become available. We respect your privacy and will only contact you about this initiative.",
@@ -238,7 +235,6 @@
       "errorWhatsappConsent": "Please agree to WhatsApp updates if providing a number",
       "errorGeneric": "Something went wrong. Please try again."
     },
-
     "amount": {
       "title": "Support {candidateName}",
       "valueProposition": "Small contributions from diaspora members build grassroots power. Every contribution between {min} and {max} helps represent Nord-Ouest with independence and integrity.",
@@ -251,7 +247,6 @@
       "errorNoAmount": "Please select or enter an amount",
       "errorOutOfRange": "Contributions are limited to {min}–{max} per supporter"
     },
-
     "details": {
       "title": "Your Details",
       "firstName": "First name",
@@ -277,7 +272,6 @@
       "errorInvalidEmail": "Please enter a valid email address",
       "errorAttestation": "All confirmations are required to continue"
     },
-
     "payment": {
       "title": "Payment",
       "contribution": "Contribution",
@@ -302,7 +296,6 @@
       "errorGeneric": "Something went wrong. Please try again.",
       "tryAgain": "Try again"
     },
-
     "success": {
       "title": "Thank You!",
       "message": "Thank you, {firstName}! Your {amount} contribution makes a difference.",

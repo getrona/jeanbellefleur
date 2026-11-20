@@ -162,9 +162,7 @@
       "long": "{date, date, long}",
       "full": "{date, date, full}"
     }
-  }
-}
-,
+  },
   "profile": {
     "intro": {
       "statusUnverified": "Statut de candidature : Non encore vérifié",
