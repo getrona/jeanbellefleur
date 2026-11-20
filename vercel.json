@@ -3,11 +3,6 @@
   "framework": "nextjs",
   "installCommand": "npm ci",
   
-  "env": {
-    "DATABASE_URL": "@database-url",
-    "DIRECT_URL": "@direct-url"
-  },
-  
   "crons": [
     {
       "path": "/api/cron/newsletter",
