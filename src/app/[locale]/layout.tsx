@@ -27,14 +27,6 @@ const inter = Inter({
   preload: true,
 })
 
-export const metadata: Metadata = {
-  title: 'Diaspora4Bellefleur | Nord-Ouest 2027',
-  description: 'Supporting Jean Fritznel Bellefleur for Senator of Nord-Ouest, Haiti. Independent supporter initiative.',
-  icons: {
-    icon: '/favicon.svg',
-  },
-}
-
 export async function generateMetadata({
   params,
 }: {
