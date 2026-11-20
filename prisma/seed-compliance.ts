@@ -24,7 +24,7 @@ async function main() {
     },
   })
 
-  const complianceUser2 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'compliance2@diaspora4bellefleur.org' },
     update: {},
     create: {

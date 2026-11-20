@@ -14,7 +14,7 @@
 
 import { prisma } from '@/lib/db/prisma'
 import { checkLaunchGate } from '@/lib/launch-gate/check'
-import { runComplianceChecks, type DonorData } from '@/lib/compliance/engine'
+import { checkCompliance, type DonationAttempt } from '@/lib/compliance/engine'
 import { getLatestAttestationVersion } from '@/lib/compliance/attestation'
 import { getPaymentProvider } from './factory'
 import { 
@@ -38,7 +38,7 @@ export class PaymentOrchestrationError extends Error {
 
 export interface CreatePaymentParams {
   // Donor info
-  donor: DonorData
+  donor: DonationAttempt
 
   // Amount
   amountCents: number
@@ -113,7 +113,7 @@ export async function createPayment(
   }
 
   // Step 3: Run compliance checks
-  const complianceResult = await runComplianceChecks({
+  const complianceResult = await checkCompliance({
     donor,
     amountCents,
     currency,
