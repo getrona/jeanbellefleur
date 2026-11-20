@@ -38,18 +38,27 @@ export class PaymentOrchestrationError extends Error {
 
 export interface CreatePaymentParams {
   // Donor info
-  donor: DonationAttempt
+  donorEmail: string
+  donorFirstName: string
+  donorLastName: string
+  donorCountry: string
+  donorPostalCode?: string
 
   // Amount
   amountCents: number
   currency: string
 
   // Compliance
-  eligibilityAttestations: {
-    isEligibleDonor: boolean
-    notProhibitedSource: boolean
-    accurateInformation: boolean
-  }
+  eligibilityAttestations: Record<string, {
+    version: number
+    text: string
+    timestamp: Date
+  }>
+  
+  // Context
+  ipAddress?: string
+  ipCountry?: string
+  userAgent?: string
   
   // Privacy
   isAnonymous: boolean
@@ -91,7 +100,7 @@ export interface ConfirmPaymentResult {
 export async function createPayment(
   params: CreatePaymentParams
 ): Promise<CreatePaymentResult> {
-  const { donor, amountCents, currency, eligibilityAttestations, isAnonymous, idempotencyKey } = params
+  const { donorEmail, donorFirstName, donorLastName, donorCountry, donorPostalCode, amountCents, currency, eligibilityAttestations, isAnonymous, idempotencyKey, ipAddress, ipCountry, userAgent } = params
 
   // Step 1: Check launch gate
   const gateCheck = await checkLaunchGate()
@@ -114,13 +123,19 @@ export async function createPayment(
 
   // Step 3: Run compliance checks
   const complianceResult = await checkCompliance({
-    donor,
+    donorEmail,
+    donorFirstName,
+    donorLastName,
+    declaredCountry: donorCountry,
     amountCents,
     currency,
-    eligibilityAttestations,
+    attestations: eligibilityAttestations,
+    ipAddress,
+    ipCountry,
+    userAgent,
   })
 
-  if (complianceResult.decision === 'DENY') {
+  if (complianceResult.result === 'DENY') {
     throw new PaymentOrchestrationError(
       'Contribution denied by compliance rules',
       'COMPLIANCE_DENIED',
@@ -131,7 +146,7 @@ export async function createPayment(
     )
   }
 
-  if (complianceResult.decision === 'MANUAL_REVIEW') {
+  if (complianceResult.result === 'REVIEW' || complianceResult.requiresReview) {
     throw new PaymentOrchestrationError(
       'Contribution requires manual review',
       'MANUAL_REVIEW_REQUIRED',
@@ -151,9 +166,9 @@ export async function createPayment(
     idempotencyKey,
     metadata: {
       complianceCheckId: complianceResult.checkId,
-      attestationVersionId: attestationVersion.id,
-      donorEmail: donor.email,
-      donorCountry: donor.country,
+      attestationVersionId: attestationVersion[0]?.key || 'unknown',
+      donorEmail,
+      donorCountry,
     },
   })
 
@@ -165,14 +180,14 @@ export async function createPayment(
         amountCents,
         currency,
         status: 'PENDING',
-        donorEmail: donor.email,
-        donorFirstName: donor.firstName,
-        donorLastName: donor.lastName,
-        donorCountry: donor.country,
-        donorPostalCode: donor.postalCode,
+        donorEmail,
+        donorFirstName,
+        donorLastName,
+        donorCountry,
+        donorPostalCode,
         isAnonymous,
         complianceCheckId: complianceResult.checkId,
-        attestationVersionId: attestationVersion.id,
+        attestationVersionId: attestationVersion[0]?.key || 'unknown',
       },
     })
 
@@ -188,8 +203,8 @@ export async function createPayment(
         complianceCheckId: complianceResult.checkId,
         clientSecret: checkoutResult.clientSecret,
         metadata: {
-          donorEmail: donor.email,
-          donorCountry: donor.country,
+          donorEmail,
+          donorCountry,
         },
       },
     })
