@@ -48,21 +48,6 @@
     }
   ],
   
-  "redirects": [
-    {
-      "source": "/admin/:path*",
-      "has": [
-        {
-          "type": "header",
-          "key": "x-forwarded-proto",
-          "value": "http"
-        }
-      ],
-      "destination": "https://:host/admin/:path*",
-      "permanent": true
-    }
-  ],
-  
   "github": {
     "silent": true,
     "autoJobCancelation": true
