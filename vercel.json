@@ -15,7 +15,8 @@
     },
     {
       "path": "/api/cron/health-check",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 */6 * * *",
+      "comment": "Every 6 hours (Hobby plan compatible). Upgrade to Pro for more frequent checks."
     },
     {
       "path": "/api/cron/backup-audit-log",

@@ -143,10 +143,13 @@ The following features are **designed and implemented** but **cannot be verified
 - Rate limited (100ms between sends, configurable per provider)
 
 **Hosting Plan Considerations**:
-- Vercel cron: Limited to 1 job on Pro plan
-- Function duration: Max 60s on Pro, 300s on Enterprise
-- Workaround: External cron (GitHub Actions, AWS EventBridge) hits endpoint
-- Batch size tuned to stay under function duration limits
+- Vercel Hobby (FREE): Cron jobs limited to once per day
+- Delivery scheduler runs daily (9am UTC) - processes all scheduled messages for next 24h
+- Health check runs every 6 hours (4x daily is allowed on Hobby)
+- Function duration: Max 10s on Hobby, 60s on Pro, 300s on Enterprise
+- Workaround for frequent tasks: External cron (GitHub Actions, Upstash QStash) hits webhook endpoint
+- Batch size tuned to stay under function duration limits (50-100 on Hobby, 500+ on Pro)
+- See `docs/VERCEL_PLAN_CONSIDERATIONS.md` for full details and upgrade path
 
 **Safety Controls**:
 - Global kill switch (in LaunchGate table)
